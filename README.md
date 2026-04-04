@@ -1,3 +1,58 @@
+# ✂️  App de Agenda de Citas
+
+[![React](https://img.shields.io/badge/React-18.2.0-61dafb?logo=react)](https://reactjs.org/)
+[![React Router](https://img.shields.io/badge/React_Router-6.14.0-ca4245?logo=react-router)](https://reactrouter.com/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+Aplicación web para **barbería moderna** que permite a los clientes registrarse, iniciar sesión y visualizar un dashboard de bienvenida. El proyecto está construido con React y se encuentra en fase inicial de desarrollo. El objetivo final es ofrecer un sistema completo de **agendamiento de citas**, gestión de barberos y panel administrativo.
+
+
+
+
+##  Características actuales
+
+- ✅ **Autenticación completa** (login + registro de clientes)
+- ✅ **Dos roles de usuario** – Cliente y Administrador/Barbero
+- ✅ **Persistencia de sesión** con localStorage
+- ✅ **Protección de rutas** (solo usuarios autenticados pueden ver el dashboard)
+- ✅ **Diseño responsive** adaptado a móviles y escritorio
+- ✅ **Mensajes de error amigables** y feedback visual
+- ✅ **Mock de usuarios** (cuenta admin predefinida para pruebas)
+
+---
+
+## 🛠️ Tecnologías utilizadas
+
+| Tecnología | Propósito |
+|------------|------------|
+| React 18 | Biblioteca principal para la UI |
+| React Router DOM | Navegación y rutas protegidas |
+| Context API | Gestión del estado de autenticación |
+| CSS3 / Flexbox | Estilos personalizados (sin dependencias externas) |
+| LocalStorage | Almacenamiento simulado de usuarios y sesión |
+
+---
+
+## 📦 Instalación y ejecución local
+
+Sigue estos pasos para tener el proyecto funcionando en tu máquina.
+
+### Prerrequisitos
+- [Node.js](https://nodejs.org/) (versión 16 o superior)
+- [npm](https://www.npmjs.com/) o [yarn](https://yarnpkg.com/)
+
+### Pasos
+
+1. **Clonar el repositorio**
+   ```bash
+   git clone https://github.com/TU_USUARIO/barberia-editorial.git
+   cd barberia-editorial
+
+
+
+
+
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
