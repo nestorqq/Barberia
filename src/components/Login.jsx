@@ -1,31 +1,45 @@
 // components/Login.jsx
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [userType, setUserType] = useState('client'); // 'client' or 'admin'
-  const [rememberMe, setRememberMe] = useState(false);
+  const [userType, setUserType] = useState('cliente'); 
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
-    if (!email.trim() || !password.trim()) {
-      setError('Por favor completa todos los campos');
-      return;
-    }
-    
     setIsLoading(true);
+
     try {
-      await login(email, password, userType);
+      
+      const response = await fetch('http://localhost:5000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: email, 
+          password: password, 
+          userType: userType 
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        
+        throw new Error(data.message || 'Error al entrar');
+      }
+
+      localStorage.setItem('usuario', JSON.stringify(data.user));
+      
+      alert("¡Bienvenido " + data.user.nombre + "!");
       navigate('/dashboard');
+
     } catch (err) {
       setError(err.message);
     } finally {
@@ -53,15 +67,15 @@ const Login = () => {
         <div className="role-selector">
           <button 
             type="button"
-            className={`role-btn ${userType === 'client' ? 'active' : ''}`}
-            onClick={() => setUserType('client')}
+            className={`role-btn ${userType === 'cliente' ? 'active' : ''}`}
+            onClick={() => setUserType('cliente')}
           >
             Acceso Cliente
           </button>
           <button 
             type="button"
-            className={`role-btn ${userType === 'admin' ? 'active' : ''}`}
-            onClick={() => setUserType('admin')}
+            className={`role-btn ${userType === 'barbero' ? 'active' : ''}`}
+            onClick={() => setUserType('barbero')}
           >
             Acceso Barbero/Admin
           </button>
@@ -98,8 +112,8 @@ const Login = () => {
             <input 
               type="checkbox" 
               id="remember" 
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
+             // checked={rememberMe}
+              //onChange={(e) => setRememberMe(e.target.checked)}
             />
             <label htmlFor="remember">Mantener sesión iniciada</label>
           </div>
