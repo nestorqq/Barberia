@@ -259,6 +259,163 @@ body {
   margin-top: 1rem;
 }
 
+.dashboard-page {
+  width: 100%;
+  max-width: 1160px;
+  padding: 2rem;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.dashboard-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #b76e3b;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-subtitle {
+  color: #6b625c;
+  margin-top: 0.5rem;
+  line-height: 1.6;
+}
+
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.dashboard-card {
+  background: white;
+  border: 1px solid #f0e8e1;
+  border-radius: 24px;
+  padding: 1.8rem;
+  text-align: left;
+  box-shadow: 0 20px 35px -15px rgba(0,0,0,0.08);
+}
+
+.dashboard-card h3 {
+  margin-bottom: 1rem;
+  color: #2c2a29;
+}
+
+.dashboard-card p {
+  color: #6b625c;
+  line-height: 1.7;
+}
+
+.dashboard-highlight {
+  background: linear-gradient(135deg, #f5e8df, #fff8f0);
+  border-color: transparent;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+}
+
+.dashboard-panel {
+  background: white;
+  border: 1px solid #f0e8e1;
+  border-radius: 24px;
+  padding: 1.8rem;
+  box-shadow: 0 20px 35px -15px rgba(0,0,0,0.08);
+  text-align: left;
+}
+
+.dashboard-panel h2 {
+  margin-bottom: 1rem;
+  color: #2c2a29;
+}
+
+.appointments-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.appointment-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1rem;
+  border-radius: 20px;
+  background: #fbf6f2;
+  border: 1px solid #f0e8e1;
+}
+
+.appointment-item h4 {
+  margin-bottom: 0.2rem;
+  color: #2c2a29;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: #4a3f39;
+  background: #f6f0e8;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.status-confirmada {
+  background: #d1f0d8;
+  color: #1a6d33;
+}
+
+.status-pendiente {
+  background: #fff2cc;
+  color: #7a5a0c;
+}
+
+.quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.action-chip {
+  border: none;
+  background: #1e1a17;
+  color: white;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.2s;
+}
+
+.action-chip:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 900px) {
+  .dashboard-cards,
+  .dashboard-grid,
+  .auth-container {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 .btn-logout:hover {
   background: #f5f0eb;
   border-color: #b76e3b;

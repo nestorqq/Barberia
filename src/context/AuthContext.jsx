@@ -10,14 +10,14 @@ const CURRENT_USER_KEY = 'barber_current_user';
 const loadUsers = () => {
   const stored = localStorage.getItem(USERS_STORAGE_KEY);
   if (stored) return JSON.parse(stored);
-  // Usuario admin por defecto
+  // Usuario barbero por defecto
   return [{
-    id: 'admin1',
-    name: 'Administrador Editorial',
-    email: 'admin@editorial.com',
-    password: 'admin123',
+    id: 'barbero1',
+    name: 'Barbero Editorial',
+    email: 'barbero@editorial.com',
+    password: 'barbero123',
     phone: '+52 55 1234 5678',
-    role: 'admin'
+    role: 'barbero'
   }];
 };
 
@@ -46,14 +46,7 @@ export const AuthProvider = ({ children }) => {
       throw new Error('Credenciales inválidas. Verifica tu correo y contraseña.');
     }
     
-    // Validar rol según selección
-    if (selectedRole === 'admin' && foundUser.role !== 'admin') {
-      throw new Error('Acceso denegado: Esta cuenta no tiene permisos de administrador/barbero.');
-    }
-    if (selectedRole === 'client' && foundUser.role !== 'client') {
-      throw new Error('Acceso denegado: Esta cuenta es de administrador. Usa acceso Barbero/Admin.');
-    }
-    
+    // Usar el rol guardado en la cuenta, sin validación adicional
     // Exito - guardar usuario (sin password)
     const { password: _, ...userWithoutPassword } = foundUser;
     setUser(userWithoutPassword);
@@ -61,7 +54,7 @@ export const AuthProvider = ({ children }) => {
     return userWithoutPassword;
   };
 
-  const signup = async (name, email, phone, password) => {
+  const signup = async (name, email, phone, password, role = 'cliente') => {
     const users = loadUsers();
     
     // Validar si el email ya existe
@@ -69,14 +62,14 @@ export const AuthProvider = ({ children }) => {
       throw new Error('El correo electrónico ya está registrado. Inicia sesión o usa otro correo.');
     }
     
-    // Crear nuevo cliente
+    // Crear nuevo usuario con rol seleccionado
     const newUser = {
       id: Date.now().toString(),
       name,
       email,
       password,
       phone,
-      role: 'client'
+      role: role === 'barbero' ? 'barbero' : 'cliente'
     };
     
     users.push(newUser);

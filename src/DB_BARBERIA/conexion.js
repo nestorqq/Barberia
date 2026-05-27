@@ -3,9 +3,9 @@ const mysql = require('mysql2');
 
 const connection = mysql.createConnection({
   host: 'localhost',
-  user: 'root',      
+  user: 'ernesto2',      
   password: '',     
-  database: 'barberia_db' 
+  database: 'barber_db'
 });
 
 
@@ -14,7 +14,6 @@ connection.connect((err) => {
     console.error('Error conectando a la DB: ' + err.stack);
     return;
   }
-  console.log('¡Conectado exitosamente a MySQL de XAMPP!');
 });
 
 module.exports = connection;

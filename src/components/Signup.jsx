@@ -10,7 +10,8 @@ const Signup = () => {
     name: '',
     email: '',
     phone: '',
-    password: ''
+    password: '',
+    role: 'cliente'
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +29,7 @@ const Signup = () => {
     setError('');
     setSuccessMsg('');
     
-    const { name, email, phone, password } = formData;
+    const { name, email, phone, password, role } = formData;
     if (!name.trim() || !email.trim() || !phone.trim() || !password.trim()) {
       setError('Todos los campos son obligatorios');
       return;
@@ -41,7 +42,7 @@ const Signup = () => {
     
     setIsLoading(true);
     try {
-      await signup(name, email, phone, password);
+      await signup(name, email, phone, password, role);
       setSuccessMsg('¡Cuenta creada con éxito! Redirigiendo al inicio de sesión...');
       setTimeout(() => {
         navigate('/login');
@@ -68,7 +69,24 @@ const Signup = () => {
       
       <div className="auth-form">
         <h1>Nueva Cuenta</h1>
-        <p className="subtitle">Ingresa tus datos para comenzar tu ritual de cuidado.</p>
+        <p className="subtitle">Selecciona tu rol y crea tu cuenta.</p>
+        
+        <div className="role-selector">
+          <button 
+            type="button"
+            className={`role-btn ${formData.role === 'cliente' ? 'active' : ''}`}
+            onClick={() => setFormData({...formData, role: 'cliente'})}
+          >
+            Soy Cliente
+          </button>
+          <button 
+            type="button"
+            className={`role-btn ${formData.role === 'barbero' ? 'active' : ''}`}
+            onClick={() => setFormData({...formData, role: 'barbero'})}
+          >
+            Soy Barbero
+          </button>
+        </div>
         
         {error && <div className="error-message">{error}</div>}
         {successMsg && <div className="error-message" style={{ background: '#e6f7e6', color: '#2b6e3c', borderLeftColor: '#2b6e3c' }}>{successMsg}</div>}
@@ -123,7 +141,7 @@ const Signup = () => {
           </div>
           
           <button type="submit" className="btn-primary" disabled={isLoading}>
-            {isLoading ? 'Creando cuenta...' : 'Crear Cuenta →'}
+            {isLoading ? 'Creando cuenta...' : `Crear Cuenta como ${formData.role === 'barbero' ? 'Barbero' : 'Cliente'} →`}
           </button>
         </form>
         
