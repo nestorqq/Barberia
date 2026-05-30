@@ -1,87 +1,131 @@
-// context/AuthContext.jsx
+// src/context/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
 const AuthContext = createContext();
 
-const USERS_STORAGE_KEY = 'barber_users';
 const CURRENT_USER_KEY = 'barber_current_user';
-
-// Cargar usuarios desde localStorage
-const loadUsers = () => {
-  const stored = localStorage.getItem(USERS_STORAGE_KEY);
-  if (stored) return JSON.parse(stored);
-  // Usuario barbero por defecto
-  return [{
-    id: 'barbero1',
-    name: 'Barbero Editorial',
-    email: 'barbero@editorial.com',
-    password: 'barbero123',
-    phone: '+52 55 1234 5678',
-    role: 'barbero'
-  }];
-};
-
-const saveUsers = (users) => {
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Restaurar sesión guardada
-    const storedUser = localStorage.getItem(CURRENT_USER_KEY);
+    // Intentamos cargar desde cualquiera de las dos llaves guardadas en localStorage
+    const storedUser = localStorage.getItem(CURRENT_USER_KEY) || localStorage.getItem('usuario');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
     setLoading(false);
   }, []);
 
-  const login = async (email, password, selectedRole) => {
-    const users = loadUsers();
-    const foundUser = users.find(u => u.email === email && u.password === password);
-    
-    if (!foundUser) {
-      throw new Error('Credenciales inválidas. Verifica tu correo y contraseña.');
+  const fetchWithTimeout = async (url, options = {}, timeout = 10000) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      return response;
+    } finally {
+      clearTimeout(timer);
     }
-    
-    // Usar el rol guardado en la cuenta, sin validación adicional
-    // Exito - guardar usuario (sin password)
-    const { password: _, ...userWithoutPassword } = foundUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userWithoutPassword));
-    return userWithoutPassword;
   };
 
-  const signup = async (name, email, phone, password, role = 'cliente') => {
-    const users = loadUsers();
-    
-    // Validar si el email ya existe
-    if (users.some(u => u.email === email)) {
-      throw new Error('El correo electrónico ya está registrado. Inicia sesión o usa otro correo.');
+  const login = async (email, password, selectedRole) => {
+    try {
+      const response = await fetchWithTimeout(
+        'http://localhost:5000/login',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            password,
+            userType: selectedRole
+          })
+        },
+        10000
+      );
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        throw new Error('El servidor respondió con formato no válido.');
+      }
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error en las credenciales');
+      }
+
+      const userData = {
+        id: data.user.id,
+        name: data.user.name || data.user.nombre,
+        email: data.user.email || data.user.correo,
+        phone: data.user.phone || data.user.telefono,
+        rol: data.user.rol,
+        role: data.user.rol
+      };
+
+      setUser(userData);
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userData));
+      localStorage.setItem('usuario', JSON.stringify(userData));
+
+      return userData;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error('El servidor tardó demasiado. Intenta de nuevo en unos segundos.');
+      }
+      if (error.message === 'Failed to fetch' || error.message === 'fetch failed') {
+        throw new Error('No se pudo conectar con el servidor. Verifica que el backend esté en ejecución.');
+      }
+      throw error;
     }
-    
-    // Crear nuevo usuario con rol seleccionado
-    const newUser = {
-      id: Date.now().toString(),
-      name,
-      email,
-      password,
-      phone,
-      role: role === 'barbero' ? 'barbero' : 'cliente'
-    };
-    
-    users.push(newUser);
-    saveUsers(users);
-    
-    // No iniciar sesión automáticamente, solo crear cuenta
-    return { success: true };
+  };
+
+  const signup = async (nombre, correo, telefono, password, rol) => {
+    try {
+      const response = await fetchWithTimeout(
+        'http://localhost:5000/signup',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ nombre, correo, telefono, password, rol }),
+        },
+        10000
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error en el registro');
+      }
+
+      return data;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error('El servidor tardó demasiado. Intenta de nuevo en unos segundos.');
+      }
+      console.error('Error en AuthContext Signup:', error);
+      throw error;
+    }
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem(CURRENT_USER_KEY);
+    localStorage.removeItem('usuario');
+  };
+
+  const updateProfile = (profile) => {
+    const updatedUser = { ...user, ...profile };
+    setUser(updatedUser);
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
+    localStorage.setItem('usuario', JSON.stringify(updatedUser));
   };
 
   const value = {
@@ -89,6 +133,7 @@ export const AuthProvider = ({ children }) => {
     login,
     signup,
     logout,
+    updateProfile,
     isAuthenticated: !!user,
     loading
   };

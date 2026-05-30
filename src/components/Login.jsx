@@ -53,7 +53,7 @@ try {
       </div>
       
       <div className="auth-form">
-        <h1>The Editorial Barber</h1>
+        <h1>Barber</h1>
         <p className="subtitle">Iniciar Sesión · Selecciona tu tipo de acceso</p>
         
         <div className="role-selector">
