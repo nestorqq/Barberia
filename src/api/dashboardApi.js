@@ -1,5 +1,5 @@
 // src/api/dashboardApi.js
-const BASE_URL = 'http://localhost:5000'; 
+const BASE_URL = 'http://127.0.0.1:5000';
 
 // Auxiliar para peticiones GET estandarizadas
 const fetchJson = async (url) => {
@@ -70,12 +70,12 @@ export const crearServicio = async (id_barbero, nombre_servicio, descripcion, pr
   formData.append('precio', precio);
   formData.append('duracion_min', duracion_min);
   if (archivoImagen) {
-    formData.append('imagen', archivoImagen); 
+    formData.append('imagen', archivoImagen);
   }
 
   const response = await fetch(`${BASE_URL}/servicios`, {
     method: 'POST',
-    body: formData 
+    body: formData
   });
   return response.json();
 };
@@ -92,7 +92,7 @@ export const crearPublicacion = async (id_barbero, id_servicio, descripcion_post
 
 
 export const eliminarServicio = async (id) => {
-  const response = await fetch(`${BASE_URL}/servicios/${id}`, { 
+  const response = await fetch(`${BASE_URL}/servicios/${id}`, {
     method: 'DELETE',
     headers: { 'Accept': 'application/json' }
   });
@@ -104,7 +104,7 @@ export const eliminarServicio = async (id) => {
 };
 
 export const eliminarPublicacion = async (id) => {
-  const response = await fetch(`${BASE_URL}/publicaciones/${id}`, { 
+  const response = await fetch(`${BASE_URL}/publicaciones/${id}`, {
     method: 'DELETE',
     headers: { 'Accept': 'application/json' }
   });
