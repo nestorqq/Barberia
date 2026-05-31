@@ -83,25 +83,25 @@ const ClientDashboard = () => {
           ) : (
             <div className="feed-grid">
               {posts.map((post) => (
-                <article key={post.id_post} className="feed-card">
-                  <div className="feed-card-image-wrapper">
-                    {post.url_imagen ? (
-                      <img src={post.url_imagen} alt={post.nombre_servicio || 'Publicación'} className="feed-card-image" />
-                    ) : (
-                      <div className="feed-card-placeholder">Sin imagen</div>
-                    )}
-                  </div>
-                  <div className="feed-card-body">
-                    <div className="feed-card-meta">
-                      <span className="feed-card-user">{post.nombre_barbero || `Barbero #${post.id_barbero || 'N/A'}`}</span>
-                      <strong>{post.nombre_servicio || 'Servicio'}</strong>
+                  <article key={post.id_post} className="feed-card">
+                    <div className="feed-card-image-wrapper">
+                      {(post.url_imagen || post.imagen || post.servicio_imagen) ? (
+                        <img src={post.url_imagen || post.imagen || post.servicio_imagen} alt={post.nombre_servicio || 'Publicación'} className="feed-card-image" />
+                      ) : (
+                        <div className="feed-card-placeholder">Sin imagen</div>
+                      )}
                     </div>
-                    <p className="feed-card-text">{post.descripcion_post || 'Descripción no disponible.'}</p>
-                    <div className="feed-card-footer">
-                      <span>{new Date(post.fecha_publicacion || Date.now()).toLocaleDateString('es-ES')}</span>
+                    <div className="feed-card-body">
+                      <div className="feed-card-meta">
+                        <span className="feed-card-user">{post.nombre_barbero || `Barbero #${post.id_barbero || 'N/A'}`}</span>
+                        <strong>{post.nombre_servicio || 'Servicio'}</strong>
+                      </div>
+                      <p className="feed-card-text">{post.descripcion_post || 'Descripción no disponible.'}</p>
+                      <div className="feed-card-footer">
+                        <span>{new Date(post.fecha_publicacion || Date.now()).toLocaleDateString('es-ES')}</span>
+                      </div>
                     </div>
-                  </div>
-                </article>
+                  </article>
               ))}
             </div>
           )}

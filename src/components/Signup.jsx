@@ -35,6 +35,13 @@ const Signup = () => {
       return;
     }
     
+    // Validar formato de teléfono (mínimo 10 dígitos)
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (phoneDigits.length < 10) {
+      setError('El teléfono debe tener al menos 10 dígitos');
+      return;
+    }
+    
     if (password.length < 4) {
       setError('La contraseña debe tener al menos 4 caracteres');
       return;

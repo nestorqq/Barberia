@@ -10,11 +10,25 @@ const ReservarServicio = () => {
   const [barberoSeleccionadoId, setBarberoSeleccionadoId] = useState('');
   const [servicios, setServicios] = useState([]);
   const [servicioSeleccionadoId, setServicioSeleccionadoId] = useState('');
-  const [fechaHora, setFechaHora] = useState('');
+  const [fechaSeleccionada, setFechaSeleccionada] = useState('');
+  const [horaSeleccionada, setHoraSeleccionada] = useState('');
   const [nota, setNota] = useState('');
   const [error, setError] = useState('');
   const [exito, setExito] = useState('');
   const [cargando, setCargando] = useState(false);
+
+  const horasDisponibles = [
+    '09:00',
+    '10:00',
+    '11:00',
+    '12:00',
+    '13:00',
+    '14:00',
+    '15:00',
+    '16:00',
+    '17:00',
+    '18:00'
+  ];
 
   useEffect(() => {
     const cargarBarberos = async () => {
@@ -54,26 +68,28 @@ const ReservarServicio = () => {
     setError('');
     setExito('');
 
-    if (!barberoSeleccionadoId || !servicioSeleccionadoId || !fechaHora) {
-      setError('Selecciona un barbero, servicio y fecha antes de reservar.');
+    if (!barberoSeleccionadoId || !servicioSeleccionadoId || !fechaSeleccionada || !horaSeleccionada) {
+      setError('Selecciona un barbero, servicio, fecha y hora antes de reservar.');
       return;
     }
 
     setCargando(true);
 
     try {
+      const fecha_hora = `${fechaSeleccionada} ${horaSeleccionada}:00`;
       await reservarCita({
         id_cliente: user.id,
         id_barbero: barberoSeleccionadoId,
         id_servicio: servicioSeleccionadoId,
-        fecha_hora: fechaHora,
+        fecha_hora,
         nota,
         estado: 'pendiente'
       });
 
       setExito('Reserva creada con éxito. Revisa tu historial para ver los detalles.');
       setServicioSeleccionadoId('');
-      setFechaHora('');
+      setFechaSeleccionada('');
+      setHoraSeleccionada('');
       setNota('');
     } catch (err) {
       console.error('Error al reservar cita:', err);
@@ -137,13 +153,31 @@ const ReservarServicio = () => {
           </label>
 
           <label>
-            Fecha y hora
+            Seleccionar fecha
             <input
-              type="datetime-local"
-              value={fechaHora}
-              onChange={(e) => setFechaHora(e.target.value)}
+              type="date"
+              value={fechaSeleccionada}
+              onChange={(e) => setFechaSeleccionada(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
             />
           </label>
+
+          <div className="time-selector-block">
+            <p className="time-selector-label">Seleccionar hora</p>
+            <div className="time-slider">
+              {horasDisponibles.map((hora) => (
+                <button
+                  key={hora}
+                  type="button"
+                  className={`time-pill ${horaSeleccionada === hora ? 'selected' : ''}`}
+                  onClick={() => setHoraSeleccionada(hora)}
+                >
+                  {hora}
+                </button>
+              ))}
+            </div>
+            {horaSeleccionada && <p className="selected-time">Hora elegida: {horaSeleccionada}</p>}
+          </div>
 
           <label>
             Nota adicional

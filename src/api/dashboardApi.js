@@ -34,6 +34,19 @@ export const reservarCita = async (appointment) => {
   return response.json();
 };
 
+export const actualizarEstadoCita = async (id, estado) => {
+  const response = await fetch(`${BASE_URL}/citas/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ estado })
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Error al actualizar el estado de la cita');
+  }
+  return data;
+};
+
 export const obtenerPerfilUsuario = async (id) => {
   return await fetchJson(`${BASE_URL}/usuario/${id}`);
 };

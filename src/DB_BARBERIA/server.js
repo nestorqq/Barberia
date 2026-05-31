@@ -68,15 +68,26 @@ app.post('/login', (req, res) => {
 });
 
 app.post('/signup', (req, res) => {
-    const { nombre, correo, email, telefono, password, rol } = req.body;
-    const emailFinal = correo || email;
+    const { name, nombre, email, correo, phone, telefono, password, rol } = req.body;
+    
+    // Normalizar los campos - aceptar tanto camelCase como snake_case
+    const nombreFinal = nombre || name || '';
+    const emailFinal = correo || email || '';
+    const telefonoFinal = telefono || phone || '';
+    
+    // Limpiar el teléfono: remover espacios, guiones, paréntesis
+    const telefonoLimpio = telefonoFinal.replace(/[\s\-()]/g, '');
+    
+    if (!nombreFinal || !emailFinal || !telefonoLimpio) {
+      return res.status(400).json({ message: "Faltan campos obligatorios (nombre, email, teléfono)" });
+    }
 
     const query = `
         INSERT INTO tabla_usuarios (nombre, correo, telefono, password, rol) 
         VALUES (?, ?, ?, ?, ?)
     `;
 
-    db.query(query, [nombre, emailFinal, telefono, password, rol], (err, result) => {
+    db.query(query, [nombreFinal, emailFinal, telefonoLimpio, password, rol], (err, result) => {
         if (err) {
             console.error("ERROR AL REGISTRAR EN MYSQL:", err);
             if (err.code === 'ER_DUP_ENTRY') {
@@ -160,6 +171,29 @@ app.post('/citas', (req, res) => {
     });
 });
 
+app.put('/citas/:id', (req, res) => {
+    const { id } = req.params;
+    const { estado } = req.body;
+
+    console.log(`PUT /citas/${id} -> estado=${estado}`);
+
+    if (!estado) {
+        return res.status(400).json({ message: 'Se requiere el estado de la cita' });
+    }
+
+    const query = 'UPDATE tabla_citas SET estado = ? WHERE id_cita = ?';
+    db.query(query, [estado, parseInt(id, 10)], (err, result) => {
+        if (err) {
+            console.error('Error al actualizar el estado de la cita:', err);
+            return res.status(500).json({ message: 'Error al actualizar la cita' });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Cita no encontrada' });
+        }
+        res.json({ success: true, message: 'Estado de la cita actualizado' });
+    });
+});
+
 app.get('/barberos', (req, res) => {
     const query = `SELECT id_user, nombre, correo, telefono FROM tabla_usuarios WHERE rol = 'barbero' ORDER BY nombre ASC`;
     db.query(query, (err, results) => {
@@ -219,11 +253,13 @@ app.get('/publicaciones', (req, res) => {
     const { id_barbero } = req.query;
     const baseQuery = `
         SELECT p.id_post, p.id_barbero, p.id_servicio, p.descripcion_post, p.fecha_publicacion,
-               s.nombre_servicio, b.nombre AS nombre_barbero, img.url_imagen
+               s.nombre_servicio, b.nombre AS nombre_barbero,
+               COALESCE(post_img.url_imagen, servicio_img.url_imagen) AS url_imagen
         FROM tabla_barbero_servicios p
         LEFT JOIN tabla_servicios s ON p.id_servicio = s.id_servicio
         LEFT JOIN tabla_usuarios b ON p.id_barbero = b.id_user
-        LEFT JOIN tabla_imagenes img ON p.id_servicio = img.id_servicio
+        LEFT JOIN tabla_imagenes post_img ON p.id_servicio = post_img.id_servicio
+        LEFT JOIN tabla_imagenes servicio_img ON s.id_servicio = servicio_img.id_servicio
     `;
 
     if (!id_barbero || id_barbero === 'null' || id_barbero === 'undefined') {
@@ -350,8 +386,8 @@ cron.schedule('* * * * *', () => {
             const mensajeCliente = `Hola ${cita.nombre_cliente}, te recordamos tu cita en la Barbería mañana a las ${horaLegible}. ¡Te esperamos!`;
             const mensajeBarbero = `Hola ${cita.nombre_barbero}, te recordamos que mañana tienes una cita programada con el cliente ${cita.nombre_cliente} a las ${horaLegible}.`;
 
-            enviarMensajeWhatsApp(cita.tel_cliente, mensajeCliente);
-            enviarMensajeWhatsApp(cita.tel_barbero, mensajeBarbero);
+            enviarMensajeWhatsApp(cita.tel_cliente, mensajeCliente, 'cliente');
+            enviarMensajeWhatsApp(cita.tel_barbero, mensajeBarbero, 'barbero');
 
             db.query('UPDATE tabla_citas SET ultimo_recordatorio = NOW() WHERE id_cita = ?', [cita.id_cita], (updErr) => {
                 if (updErr) console.error(` -> [ERROR DB] Error al bloquear recordatorio duplicado:`, updErr);
@@ -362,14 +398,22 @@ cron.schedule('* * * * *', () => {
 
 // 
 
-function enviarMensajeWhatsApp(telefono, mensaje) {
+function enviarMensajeWhatsApp(telefono, mensaje, tipo = 'desconocido') {
     if (!telefono) {
-        console.error(' -> [Twilio REJECT] Teléfono vacío.');
+        console.error(` -> [Twilio REJECT] Teléfono vacío para ${tipo}. Mensaje: ${mensaje}`);
         return;
     }
 
+    const originalTelefonos = telefono;
     // 1. Convertir a string y eliminar absolutamente todo lo que no sea un número (quitar espacios, guiones, letras)
     let limpio = telefono.toString().replace(/[^0-9]/g, '');
+
+    console.log(` -> [Twilio DEBUG] Preparando envío WhatsApp (${tipo}).`, {
+        tipo,
+        telefono_original: originalTelefonos,
+        telefono_sin_numeros: limpio,
+        mensaje
+    });
 
     // 2. Si el usuario escribió por ejemplo "5217225184109" o "52722518...", le quitamos el código de país para estandarizarlo a 10 dígitos
     if (limpio.length === 13 && limpio.startsWith('521')) {
@@ -383,13 +427,16 @@ function enviarMensajeWhatsApp(telefono, mensaje) {
         limpio = `+52${limpio}`;
     } else if (limpio.length > 10 && !limpio.startsWith('+')) {
         limpio = `+${limpio}`;
+    } else if (limpio.length === 0) {
+        console.error(` -> [Twilio REJECT] El número queda vacío después de limpiar: ${originalTelefonos}`);
+        return;
     } else {
-        console.error(` -> [Twilio REJECT] El número no tiene una estructura válida (mide ${limpio.length} dígitos): ${telefono}`);
+        console.error(` -> [Twilio REJECT] El número no tiene una estructura válida (mide ${limpio.length} dígitos): ${originalTelefonos}`);
         return;
     }
 
     const stringDestino = `whatsapp:${limpio}`;
-    console.log(` -> Despachando WhatsApp hacia: ${stringDestino}`);
+    console.log(` -> Despachando WhatsApp hacia: ${stringDestino} (tipo: ${tipo})`);
 
     twilioClient.messages.create({
         body: mensaje,

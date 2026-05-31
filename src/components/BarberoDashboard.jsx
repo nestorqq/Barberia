@@ -9,7 +9,8 @@ import {
   crearServicio, 
   crearPublicacion,
   eliminarServicio,
-  eliminarPublicacion 
+  eliminarPublicacion,
+  actualizarEstadoCita
 } from '../api/dashboardApi';
 
 const BarberoDashboard = () => {
@@ -175,6 +176,39 @@ const BarberoDashboard = () => {
     }
   };
 
+  const handleAceptarCita = async (id_cita) => {
+    if (!id_cita) return;
+    setError(null);
+    setSuccess(null);
+    try {
+      await actualizarEstadoCita(id_cita, 'confirmada');
+      setSuccess('Cita confirmada correctamente.');
+      setTimeout(() => setSuccess(null), 4000);
+      await loadData();
+    } catch (err) {
+      console.error('Error al aceptar cita:', err);
+      setError(err.message || 'No se pudo confirmar la cita. Intenta nuevamente.');
+      setTimeout(() => setError(null), 4000);
+    }
+  };
+
+  const handleCancelarCita = async (id_cita) => {
+    if (!id_cita) return;
+    if (!window.confirm('¿Deseas cancelar esta cita? Esta acción actualizará el estado a cancelada.')) return;
+    setError(null);
+    setSuccess(null);
+    try {
+      await actualizarEstadoCita(id_cita, 'cancelada');
+      setSuccess('Cita cancelada correctamente.');
+      setTimeout(() => setSuccess(null), 4000);
+      await loadData();
+    } catch (err) {
+      console.error('Error al cancelar cita:', err);
+      setError(err.message || 'No se pudo cancelar la cita. Intenta nuevamente.');
+      setTimeout(() => setError(null), 4000);
+    }
+  };
+
   return (
     <div className="dashboard-page">
       <header className="dashboard-header">
@@ -218,6 +252,28 @@ const BarberoDashboard = () => {
                   <p>{appointment.fecha_hora || 'Horario pendiente'}</p>
                   <span className={`status-pill status-${(appointment.estado || 'pendiente').toLowerCase()}`}>{appointment.estado || 'pendiente'}</span>
                   <p className="appointment-meta"><strong>Cliente:</strong> {appointment.nombre_cliente || 'Desconocido'}</p>
+                  <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', marginTop: '0.9rem' }}>
+                    {appointment.estado === 'pendiente' && (
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        style={{ padding: '0.65rem 1rem', fontSize: '0.95rem' }}
+                        onClick={() => handleAceptarCita(appointment.id_cita || appointment.id)}
+                      >
+                        Confirmar cita
+                      </button>
+                    )}
+                    {appointment.estado !== 'cancelada' && (
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        style={{ padding: '0.65rem 1rem', fontSize: '0.95rem', background: '#9b1c1c', borderColor: '#7f1d1d' }}
+                        onClick={() => handleCancelarCita(appointment.id_cita || appointment.id)}
+                      >
+                        Cancelar cita
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -270,24 +326,24 @@ const BarberoDashboard = () => {
         ) : (
           <div className="appointments-list" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '15px'}}>
             {posts.map((post) => (
-              <div key={`post-${post.id_post}`} className="appointment-item" style={{ position: 'relative' }}>
-                <button 
-                  onClick={() => handleDeletePost(post.id_post)}
-                  style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', color: '#9b1c1c', cursor: 'pointer', fontWeight: 'bold', fontSize: '18px', zIndex: 10 }}
-                  title="Eliminar publicación"
-                >
-                  ×
-                </button>
+                <div key={`post-${post.id_post}`} className="appointment-item" style={{ position: 'relative' }}>
+                  <button 
+                    onClick={() => handleDeletePost(post.id_post)}
+                    style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', color: '#9b1c1c', cursor: 'pointer', fontWeight: 'bold', fontSize: '18px', zIndex: 10 }}
+                    title="Eliminar publicación"
+                  >
+                    ×
+                  </button>
 
-                {post.url_imagen && (
-                  <img src={post.url_imagen} alt="Servicio publicado" style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '8px', marginBottom: '12px', display: 'block' }} />
-                )}
+                  {(post.url_imagen || post.imagen || post.servicio_imagen) && (
+                    <img src={post.url_imagen || post.imagen || post.servicio_imagen} alt="Servicio publicado" style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '8px', marginBottom: '12px', display: 'block' }} />
+                  )}
 
-                <h4>Servicio ID {post.id_servicio}</h4>
-                <p style={{ paddingRight: '20px', color: '#444' }}>{post.descripcion_post}</p>
-                <p className="appointment-meta" style={{ marginTop: '8px' }}><strong>Barbero ID:</strong> {post.id_barbero}</p>
-              </div>
-            ))}
+                  <h4>Servicio ID {post.id_servicio}</h4>
+                  <p style={{ paddingRight: '20px', color: '#444' }}>{post.descripcion_post}</p>
+                  <p className="appointment-meta" style={{ marginTop: '8px' }}><strong>Barbero ID:</strong> {post.id_barbero}</p>
+                </div>
+              ))}
           </div>
         )}
       </section>

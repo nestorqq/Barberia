@@ -40,10 +40,13 @@ const EditarPerfil = () => {
     setSaving(true);
 
     try {
+      // Limpiar el teléfono: remover espacios, guiones, paréntesis
+      const telefonoLimpio = form.phone.replace(/[\s\-()]/g, '');
+      
       const payload = {
         nombre: form.name,
         correo: form.email,
-        telefono: form.phone
+        telefono: telefonoLimpio
       };
 
       if (form.password) {
