@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import SocialLogin from './SocialLogin';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -114,7 +115,7 @@ try {
             {isLoading ? 'Ingresando...' : 'Entrar a la Experiencia'}
           </button>
         </form>
-        
+        <SocialLogin />
         <div className="auth-footer">
           ¿Aún no tienes cuenta? <Link to="/signup">Crear Cuenta</Link>
         </div>

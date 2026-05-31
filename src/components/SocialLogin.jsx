@@ -16,13 +16,18 @@ const SocialLogin = () => {
       const { auth, googleProvider } = await import('../firebase');
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-      await socialLogin({
+      const loggedUser = await socialLogin({
         firebase_uid: user.uid,
         name: user.displayName,
         email: user.email,
         photo: user.photoURL
       });
-      navigate('/dashboard');
+      const activeRole = loggedUser?.rol || loggedUser?.role || 'cliente';
+      if (activeRole === 'barbero') {
+        navigate('/barbero-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -38,13 +43,18 @@ const SocialLogin = () => {
       const { auth, facebookProvider } = await import('../firebase');
       const result = await signInWithPopup(auth, facebookProvider);
       const user = result.user;
-      await socialLogin({
+      const loggedUser = await socialLogin({
         firebase_uid: user.uid,
         name: user.displayName,
         email: user.email,
         photo: user.photoURL
       });
-      navigate('/dashboard');
+      const activeRole = loggedUser?.rol || loggedUser?.role || 'cliente';
+      if (activeRole === 'barbero') {
+        navigate('/barbero-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.message);
     } finally {

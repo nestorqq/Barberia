@@ -115,6 +115,49 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const socialLogin = async ({ name, email, photo }) => {
+    try {
+      const response = await fetchWithTimeout(
+        'http://localhost:5000/social-login',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name, email, photo }),
+        },
+        10000
+      );
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al iniciar sesión con Google');
+      }
+
+      const usuario = data.user;
+      const userData = {
+        id: usuario.id_user,
+        name: usuario.nombre || usuario.name,
+        email: usuario.correo || usuario.email,
+        phone: usuario.telefono || usuario.phone || '',
+        rol: usuario.rol || 'cliente',
+        role: usuario.rol || 'cliente'
+      };
+
+      setUser(userData);
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(userData));
+      localStorage.setItem('usuario', JSON.stringify(userData));
+
+      return userData;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error('El servidor tardó demasiado. Intenta de nuevo en unos segundos.');
+      }
+      console.error('Error en AuthContext socialLogin:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem(CURRENT_USER_KEY);
@@ -132,6 +175,7 @@ export const AuthProvider = ({ children }) => {
     user,
     login,
     signup,
+    socialLogin,
     logout,
     updateProfile,
     isAuthenticated: !!user,

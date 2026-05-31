@@ -99,6 +99,48 @@ app.post('/signup', (req, res) => {
     });
 });
 
+app.post('/social-login', (req, res) => {
+    const { name, email, photo } = req.body;
+    if (!name || !email) {
+        return res.status(400).json({ message: 'Faltan campos obligatorios para el login social' });
+    }
+
+    const emailFinal = email.toString().trim();
+    const nombreFinal = name.toString().trim();
+
+    const findQuery = 'SELECT id_user, nombre, correo, telefono, rol FROM tabla_usuarios WHERE correo = ? LIMIT 1';
+    db.query(findQuery, [emailFinal], (findErr, results) => {
+        if (findErr) {
+            console.error('Error al buscar usuario social:', findErr);
+            return res.status(500).json({ message: 'Error de base de datos' });
+        }
+
+        if (results.length > 0) {
+            return res.json({ success: true, user: results[0] });
+        }
+
+        const insertQuery = 'INSERT INTO tabla_usuarios (nombre, correo, telefono, password, rol) VALUES (?, ?, ?, ?, ?)';
+        db.query(insertQuery, [nombreFinal, emailFinal, '', '', 'cliente'], (insertErr, insertResult) => {
+            if (insertErr) {
+                console.error('Error al crear usuario social:', insertErr);
+                if (insertErr.code === 'ER_DUP_ENTRY') {
+                    return res.status(400).json({ message: 'El correo ya está registrado' });
+                }
+                return res.status(500).json({ message: 'Error de base de datos' });
+            }
+
+            const newUser = {
+                id_user: insertResult.insertId,
+                nombre: nombreFinal,
+                correo: emailFinal,
+                telefono: '',
+                rol: 'cliente'
+            };
+            res.json({ success: true, user: newUser });
+        });
+    });
+});
+
 app.get('/citas', (req, res) => {
     const { id_barbero } = req.query;
     let query = 'SELECT * FROM tabla_citas';
