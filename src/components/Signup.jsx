@@ -16,6 +16,7 @@ const Signup = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const signupImageUrl = 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80';
 
   const handleChange = (e) => {
     setFormData({
@@ -63,11 +64,7 @@ const Signup = () => {
 
   return (
     <div className="auth-container">
-      <div className="auth-image">
-        <img 
-          src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
-          alt="Experiencia Editorial"
-        />
+      <div className="auth-image" style={{ backgroundImage: `url(${signupImageUrl})` }}>
         <div className="image-overlay">
           <h2>Únete a la Experiencia Editorial</h2>
           <p>Un espacio donde el cuidado personal se encuentra con el diseño contemporáneo. Crea tu cuenta para gestionar tus citas.</p>
