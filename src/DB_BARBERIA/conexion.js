@@ -1,17 +1,18 @@
 const mysql = require('mysql2');
 
 const poolConfig = {
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: parseInt(process.env.DB_PORT, 10) || 3306,
-  user: process.env.DB_USER || 'root',
-  database: process.env.DB_DATABASE || 'barber_db',
+  // Cambiamos DB_HOST por MYSQLHOST, etc.
+  host: process.env.MYSQLHOST || '127.0.0.1',
+  port: parseInt(process.env.MYSQLPORT, 10) || 3306,
+  user: process.env.MYSQLUSER || 'root',
+  database: process.env.MYSQLDATABASE || 'railway', // En Railway la BD por defecto se llama 'railway'
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
   connectTimeout: 5000
 };
 
-const dbPassword = process.env.DB_PASSWORD?.trim();
+const dbPassword = process.env.MYSQLPASSWORD?.trim();
 if (dbPassword) {
   poolConfig.password = dbPassword;
 }
@@ -23,7 +24,7 @@ pool.getConnection((err, connection) => {
     console.error('Error conectando a la DB: ' + (err.stack || err.message));
     return;
   }
-  console.log('Conectado a la base de datos MySQL');
+  console.log('Conectado a la base de datos MySQL (Nube)');
   connection.release();
 });
 
