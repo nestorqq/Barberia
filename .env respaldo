@@ -1,0 +1,21 @@
+# Base de datos MySQL
+DB_HOST=127.0.0.1
+DB_USER=root
+DB_PASSWORD=12345678
+DB_DATABASE=barber_db
+
+# Puerto del backend
+PORT=5000
+
+# Notas:
+# - Copia este archivo a .env si deseas cargar variables desde dotenv.
+# - El backend usa process.env para leer estas variables si están definidas.
+
+TWILIO_ACCOUNT_SID=AC44796d4da0ebd548ee2ff91810a546ed
+TWILIO_AUTH_TOKEN=6a928998b2fd5441ef5816e9233a18de
+TWILIO_PHONE_NUMBER=whatsapp:+14155238886
+
+
+CLOUDINARY_CLOUD_NAME=dos0tfvvr
+CLOUDINARY_API_KEY=366141955832148
+CLOUDINARY_API_SECRET=MBY4RRQvYxaRCp4k4puoJYdJ7MI

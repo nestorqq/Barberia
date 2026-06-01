@@ -4,11 +4,11 @@ const express = require('express');
 const app = express();
 const db = require('./conexion');
 const cors = require('cors');
-const path = require('path');
 
 const multer = require('multer');
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { initTransporter, sendConfirmationToClient, sendConfirmationToBarbero, sendRefundToClient } = require('./emailService');
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
