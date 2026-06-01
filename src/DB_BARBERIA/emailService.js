@@ -4,24 +4,40 @@ let transporter = null;
 let testUrl = null;
 
 const initTransporter = async () => {
-  const testAccount = await nodemailer.createTestAccount();
-  transporter = nodemailer.createTransport({
-    host: 'smtp.ethereal.email',
-    port: 587,
-    secure: false,
-    auth: {
-      user: testAccount.user,
-      pass: testAccount.pass,
-    },
-  });
-  testUrl = `https://ethereal.email/login?user=${testAccount.user}`;
-  console.log('\n==========================================');
-  console.log('[EMAIL] CORREOS DE PRUEBA (Ethereal)');
-  console.log('==========================================');
-  console.log(`  User: ${testAccount.user}`);
-  console.log(`  Pass: ${testAccount.pass}`);
-  console.log(`  Ver correos: ${testUrl}`);
-  console.log('==========================================\n');
+  if (process.env.GMAIL_USER && process.env.GMAIL_PASS) {
+    transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_PASS,
+      },
+    });
+    console.log('\n==========================================');
+    console.log('[EMAIL] Usando Gmail SMTP');
+    console.log(`  User: ${process.env.GMAIL_USER}`);
+    console.log('==========================================\n');
+  } else {
+    const testAccount = await nodemailer.createTestAccount();
+    transporter = nodemailer.createTransport({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    });
+    testUrl = `https://ethereal.email/login?user=${testAccount.user}`;
+    console.log('\n==========================================');
+    console.log('[EMAIL] CORREOS DE PRUEBA (Ethereal)');
+    console.log('==========================================');
+    console.log(`  User: ${testAccount.user}`);
+    console.log(`  Pass: ${testAccount.pass}`);
+    console.log(`  Ver correos: ${testUrl}`);
+    console.log('==========================================\n');
+  }
   return transporter;
 };
 
@@ -66,15 +82,20 @@ const sendConfirmationToClient = async (clienteEmail, clienteNombre, datos) => {
     </div>
   `;
 
+  const fromEmail = process.env.GMAIL_USER || 'no-reply@barberia.edu';
   const info = await transporter.sendMail({
-    from: '"Barbería" <no-reply@barberia.edu>',
+    from: `"Barbería" <${fromEmail}>`,
     to: clienteEmail,
-    subject: '✂️ Reserva confirmada — Barbería',
+    subject: 'Reserva confirmada - Barberia',
     html,
   });
 
-      console.log(`\n[EMAIL] Correo enviado a CLIENTE (${clienteEmail}):`);
-      console.log(`   Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
+  if (testUrl) {
+    console.log(`\n[EMAIL] Correo enviado a CLIENTE (${clienteEmail}):`);
+    console.log(`   Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
+  } else {
+    console.log(`[EMAIL] Correo enviado a CLIENTE (${clienteEmail})`);
+  }
 };
 
 const sendConfirmationToBarbero = async (barberoEmail, barberoNombre, datos) => {
@@ -101,15 +122,20 @@ const sendConfirmationToBarbero = async (barberoEmail, barberoNombre, datos) => 
     </div>
   `;
 
+  const fromEmail = process.env.GMAIL_USER || 'no-reply@barberia.edu';
   const info = await transporter.sendMail({
-    from: '"Barbería" <no-reply@barberia.edu>',
+    from: `"Barbería" <${fromEmail}>`,
     to: barberoEmail,
-    subject: '📅 Nueva cita programada — Barbería',
+    subject: 'Nueva cita programada - Barberia',
     html,
   });
 
-      console.log(`\n[EMAIL] Correo enviado a BARBERO (${barberoEmail}):`);
-      console.log(`   Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
+  if (testUrl) {
+    console.log(`\n[EMAIL] Correo enviado a BARBERO (${barberoEmail}):`);
+    console.log(`   Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
+  } else {
+    console.log(`[EMAIL] Correo enviado a BARBERO (${barberoEmail})`);
+  }
 };
 
 const sendRefundToClient = async (clienteEmail, clienteNombre, datos) => {
@@ -138,15 +164,20 @@ const sendRefundToClient = async (clienteEmail, clienteNombre, datos) => {
     </div>
   `;
 
+  const fromEmail = process.env.GMAIL_USER || 'no-reply@barberia.edu';
   const info = await transporter.sendMail({
-    from: '"Barbería" <no-reply@barberia.edu>',
+    from: `"Barbería" <${fromEmail}>`,
     to: clienteEmail,
-    subject: '🔄 Reembolso procesado — Barbería',
+    subject: 'Reembolso procesado - Barberia',
     html,
   });
 
-  console.log(`\n[EMAIL] Correo de REEMBOLSO enviado a CLIENTE (${clienteEmail}):`);
-  console.log(`   Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
+  if (testUrl) {
+    console.log(`\n[EMAIL] Correo de REEMBOLSO enviado a CLIENTE (${clienteEmail}):`);
+    console.log(`   Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
+  } else {
+    console.log(`[EMAIL] Correo de REEMBOLSO enviado a CLIENTE (${clienteEmail})`);
+  }
 };
 
 module.exports = { initTransporter, sendConfirmationToClient, sendConfirmationToBarbero, sendRefundToClient };
