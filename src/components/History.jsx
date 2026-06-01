@@ -64,13 +64,13 @@ const Historial = () => {
                   <p>Estado: <span className={`status-pill status-${(item.estado || 'pendiente').toLowerCase()}`}>{item.estado || 'Pendiente'}</span></p>
                   {item.nota && <p>Nota: {item.nota}</p>}
                   {item.payment_status === 'completed' && item.estado !== 'cancelada' && (
-                    <p><span className="payment-badge payment-badge-paid">✅ Pagado — ${parseFloat(item.monto || 0).toFixed(2)}</span></p>
+                    <p><span className="payment-badge payment-badge-paid">Pagado — ${parseFloat(item.monto || 0).toFixed(2)}</span></p>
                   )}
                   {item.payment_status === 'completed' && item.estado === 'cancelada' && (
-                    <p><span className="payment-badge payment-badge-pending">🔄 Reembolso en proceso — Se acreditará en un plazo no mayor a 48 horas</span></p>
+                    <p><span className="payment-badge payment-badge-pending"> Reembolso en proceso — Se acreditará en un plazo no mayor a 48 horas</span></p>
                   )}
                   {item.payment_status === 'refunded' && (
-                    <p><span className="payment-badge payment-badge-refunded">🔁 Reembolsado — ${parseFloat(item.monto || 0).toFixed(2)}{item.refundado_en ? ` el ${new Date(item.refundado_en).toLocaleDateString('es-MX')}` : ''}</span></p>
+                    <p><span className="payment-badge payment-badge-refunded">Reembolsado — ${parseFloat(item.monto || 0).toFixed(2)}{item.refundado_en ? ` el ${new Date(item.refundado_en).toLocaleDateString('es-MX')}` : ''}</span></p>
                   )}
                 </div>
               </article>

@@ -240,7 +240,9 @@ app.post('/citas', (req, res) => {
             db.query(emailQuery, [id_cita], async (err2, rows) => {
                 if (!err2 && rows.length > 0) {
                     const r = rows[0];
+                    console.log('[CITA CREADA] Intentando enviar correos confirmación...');
                     try {
+                        console.log(`  -> Enviando a cliente: ${r.correo_cliente}`);
                         await sendConfirmationToClient(r.correo_cliente, r.nombre_cliente, {
                             nombre_servicio: r.nombre_servicio,
                             nombre_barbero: r.nombre_barbero,
@@ -248,6 +250,7 @@ app.post('/citas', (req, res) => {
                             monto: r.monto,
                             payment_intent_id: r.payment_intent_id,
                         });
+                        console.log(`  -> Enviando a barbero: ${r.correo_barbero}`);
                         await sendConfirmationToBarbero(r.correo_barbero, r.nombre_barbero, {
                             nombre_cliente: r.nombre_cliente,
                             nombre_servicio: r.nombre_servicio,
@@ -255,9 +258,12 @@ app.post('/citas', (req, res) => {
                             monto: r.monto,
                             nota: r.nota,
                         });
+                        console.log('[CITA CREADA] ✅ Correos enviados exitosamente');
                     } catch (emailErr) {
-                        console.error('Error enviando correos:', emailErr);
+                        console.error('[CITA CREADA] ❌ Error enviando correos:', emailErr.message);
                     }
+                } else if (err2) {
+                    console.error('[CITA CREADA] Error en query de correos:', err2.message);
                 }
             });
         }
@@ -311,13 +317,16 @@ app.put('/citas/:id', (req, res) => {
 
             if (refund) {
                 try {
+                    console.log('[CITA CANCELADA] Intentando enviar correo de reembolso...');
+                    console.log(`  -> Enviando a cliente: ${cita.correo_cliente}`);
                     await sendRefundToClient(cita.correo_cliente, cita.nombre_cliente, {
                         nombre_servicio: cita.nombre_servicio,
                         monto: cita.monto,
                         payment_intent_id: cita.payment_intent_id,
                     });
+                    console.log('[CITA CANCELADA] ✅ Correo de reembolso enviado');
                 } catch (emailErr) {
-                    console.error('Error enviando correo de reembolso:', emailErr);
+                    console.error('[CITA CANCELADA] ❌ Error enviando correo de reembolso:', emailErr.message);
                 }
 
                 return res.json({

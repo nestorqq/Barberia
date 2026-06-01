@@ -127,13 +127,13 @@ const ClientDashboard = () => {
                     <span>{item.fecha_hora || item.fecha || 'Fecha pendiente'}</span>
                     <span className={`status-pill status-${(item.estado || 'pendiente').toLowerCase()}`}>{item.estado || 'Pendiente'}</span>
                     {item.payment_status === 'completed' && item.estado !== 'cancelada' && (
-                      <span className="payment-badge payment-badge-paid">✅ Pagado</span>
+                      <span className="payment-badge payment-badge-paid"> Pagado</span>
                     )}
                     {item.payment_status === 'completed' && item.estado === 'cancelada' && (
-                      <span className="payment-badge payment-badge-pending">🔄 Reembolso en proceso</span>
+                      <span className="payment-badge payment-badge-pending"> Reembolso en proceso</span>
                     )}
                     {item.payment_status === 'refunded' && (
-                      <span className="payment-badge payment-badge-refunded">🔁 Reembolsado</span>
+                      <span className="payment-badge payment-badge-refunded">Reembolsado</span>
                     )}
                   </li>
                 ))}
