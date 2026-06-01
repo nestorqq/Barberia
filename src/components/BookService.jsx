@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { reservarCita, obtenerBarberos, obtenerServicios } from '../api/dashboardApi';
+import PaymentModal from './PaymentModal';
 
 const ReservarServicio = () => {
   const { user } = useAuth();
@@ -10,12 +11,14 @@ const ReservarServicio = () => {
   const [barberoSeleccionadoId, setBarberoSeleccionadoId] = useState('');
   const [servicios, setServicios] = useState([]);
   const [servicioSeleccionadoId, setServicioSeleccionadoId] = useState('');
+  const [servicioSeleccionado, setServicioSeleccionado] = useState(null);
   const [fechaSeleccionada, setFechaSeleccionada] = useState('');
   const [horaSeleccionada, setHoraSeleccionada] = useState('');
   const [nota, setNota] = useState('');
   const [error, setError] = useState('');
   const [exito, setExito] = useState('');
   const [cargando, setCargando] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
 
   const horasDisponibles = [
     '09:00',
@@ -63,7 +66,18 @@ const ReservarServicio = () => {
     cargarServicios();
   }, [barberoSeleccionadoId]);
 
-  const handleSubmit = async (event) => {
+  useEffect(() => {
+    if (servicioSeleccionadoId) {
+      const encontrado = servicios.find(
+        s => (s.id_servicio || s.id) === parseInt(servicioSeleccionadoId)
+      );
+      setServicioSeleccionado(encontrado || null);
+    } else {
+      setServicioSeleccionado(null);
+    }
+  }, [servicioSeleccionadoId, servicios]);
+
+  const handleSubmit = (event) => {
     event.preventDefault();
     setError('');
     setExito('');
@@ -73,21 +87,37 @@ const ReservarServicio = () => {
       return;
     }
 
+    if (!servicioSeleccionado) {
+      setError('Servicio no encontrado. Intenta de nuevo.');
+      return;
+    }
+
+    setShowPayment(true);
+  };
+
+  const handlePaymentSuccess = async (txnId) => {
+    setShowPayment(false);
     setCargando(true);
 
     try {
       const fecha_hora = `${fechaSeleccionada} ${horaSeleccionada}:00`;
+      const precio = parseFloat(servicioSeleccionado.precio || servicioSeleccionado.precio_servicio || 0);
+
       await reservarCita({
         id_cliente: user.id,
         id_barbero: barberoSeleccionadoId,
         id_servicio: servicioSeleccionadoId,
         fecha_hora,
         nota,
-        estado: 'pendiente'
+        estado: 'pendiente',
+        monto: precio,
+        payment_intent_id: txnId,
+        payment_status: 'completed'
       });
 
       setExito('Reserva creada con éxito. Revisa tu historial para ver los detalles.');
       setServicioSeleccionadoId('');
+      setServicioSeleccionado(null);
       setFechaSeleccionada('');
       setHoraSeleccionada('');
       setNota('');
@@ -146,7 +176,7 @@ const ReservarServicio = () => {
               <option value="">Selecciona un servicio</option>
               {servicios.map((servicio) => (
                 <option key={servicio.id_servicio || servicio.id} value={servicio.id_servicio || servicio.id}>
-                  {servicio.nombre_servicio} - ${servicio.precio || servicio.precio_servicio}
+                  {servicio.nombre_servicio} — ${parseFloat(servicio.precio || servicio.precio_servicio).toFixed(2)}
                 </option>
               ))}
             </select>
@@ -188,11 +218,34 @@ const ReservarServicio = () => {
             />
           </label>
 
-          <button type="submit" disabled={cargando}>
-            {cargando ? 'Guardando reserva...' : 'Confirmar reserva'}
+          {servicioSeleccionado && (
+            <div className="payment-summary">
+              <p className="payment-summary-label">Total a pagar:</p>
+              <p className="payment-summary-amount">
+                ${parseFloat(servicioSeleccionado.precio || servicioSeleccionado.precio_servicio || 0).toFixed(2)}
+              </p>
+            </div>
+          )}
+
+          <button type="submit" disabled={cargando || !servicioSeleccionado}>
+            {cargando
+              ? 'Guardando reserva...'
+              : servicioSeleccionado
+                ? `Reservar y pagar — $${parseFloat(servicioSeleccionado.precio || servicioSeleccionado.precio_servicio || 0).toFixed(2)}`
+                : 'Selecciona un servicio'
+            }
           </button>
         </form>
       </section>
+
+      {showPayment && servicioSeleccionado && (
+        <PaymentModal
+          monto={parseFloat(servicioSeleccionado.precio || servicioSeleccionado.precio_servicio || 0)}
+          nombreServicio={servicioSeleccionado.nombre_servicio}
+          onSuccess={handlePaymentSuccess}
+          onClose={() => setShowPayment(false)}
+        />
+      )}
     </div>
   );
 };
