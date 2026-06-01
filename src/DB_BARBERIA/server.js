@@ -4,33 +4,43 @@ const express = require('express');
 const app = express();
 const db = require('./conexion');
 const cors = require('cors');
-const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+
+const multer = require('multer');
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'barberia_servicios',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp']
+    }
+});
+
+const upload = multer({ storage: storage });
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-if (!fs.existsSync('./uploads')) {
-    fs.mkdirSync('./uploads');
-}
+app.use((err, req, res, next) => {
+    if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+        console.error('JSON inválido en la solicitud:', err.message);
+        return res.status(400).json({ message: 'JSON inválido en la solicitud' });
+    }
+    next(err);
+});
 
 app.get('/', (req, res) => {
     res.json({ status: 'ok', message: 'Backend de Barberia activo' });
 });
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, './uploads/');
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
-});
-const upload = multer({ storage: storage });
 
 app.post('/login', (req, res) => {
     const { email, correo, password, userType } = req.body;
@@ -70,12 +80,10 @@ app.post('/login', (req, res) => {
 app.post('/signup', (req, res) => {
     const { name, nombre, email, correo, phone, telefono, password, rol } = req.body;
     
-    // Normalizar los campos - aceptar tanto camelCase como snake_case
     const nombreFinal = nombre || name || '';
     const emailFinal = correo || email || '';
     const telefonoFinal = telefono || phone || '';
     
-    // Limpiar el teléfono: remover espacios, guiones, paréntesis
     const telefonoLimpio = telefonoFinal.replace(/[\s\-()]/g, '');
     
     if (!nombreFinal || !emailFinal || !telefonoLimpio) {
@@ -100,7 +108,7 @@ app.post('/signup', (req, res) => {
 });
 
 app.post('/social-login', (req, res) => {
-    const { name, email, photo } = req.body;
+    const { name, email } = req.body;
     if (!name || !email) {
         return res.status(400).json({ message: 'Faltan campos obligatorios para el login social' });
     }
@@ -173,9 +181,6 @@ app.get('/citas/cliente/:id_cliente', (req, res) => {
     });
 });
 
-// ==========================================
-// CORRECCIÓN AQUÍ: POST /CITAS CONTROLANDO LA HORA
-// ==========================================
 app.post('/citas', (req, res) => {
     const { id_user, id_cliente, id_barbero, id_servicio, fecha_hora, estado } = req.body;
     const customerId = id_user || id_cliente;
@@ -184,10 +189,8 @@ app.post('/citas', (req, res) => {
         return res.status(400).json({ message: 'Faltan campos obligatorios para la cita' });
     }
 
-    // Convertimos lo que mande el frontend a un formato limpio de MySQL sin desfases UTC
     const fechaObjeto = new Date(fecha_hora);
 
-    // Si la fecha es válida, la formateamos manualmente a 'YYYY-MM-DD HH:MM:SS'
     let fechaFinalSQL = fecha_hora;
     if (!isNaN(fechaObjeto.getTime())) {
         const pad = (num) => num.toString().padStart(2, '0');
@@ -332,7 +335,7 @@ app.post('/servicios', upload.single('imagen'), (req, res) => {
 
         const id_servicio = result.insertId;
         if (req.file) {
-            const url_imagen = `http://localhost:5000/uploads/${req.file.filename}`;
+            const url_imagen = req.file.path; 
             db.query('INSERT INTO tabla_imagenes (id_servicio, url_imagen) VALUES (?, ?)', [id_servicio, url_imagen], (imgErr) => {
                 return res.json({ success: true, message: "Servicio e imagen creados", id_servicio });
             });
@@ -367,9 +370,6 @@ app.delete('/publicaciones/:id', (req, res) => {
     });
 });
 
-// ==========================================
-// SISTEMA AUTOMÁTICO DE CITAS (CRON JOB)
-// ==========================================
 const cron = require('node-cron');
 const twilio = require('twilio');
 
@@ -379,7 +379,7 @@ cron.schedule('* * * * *', () => {
     console.log('\n=== [CRON] CONTROL DE CITAS ACTIVO (PROD) ===');
 
     const ahoraUTC = new Date();
-    // Escaneamos citas que sucedan entre las próximas 23 y 25 horas
+    
     const inicioRango = new Date(ahoraUTC.getTime() + 23 * 60 * 60 * 1000);
     const finRango = new Date(ahoraUTC.getTime() + 25 * 60 * 60 * 1000);
 
@@ -438,8 +438,6 @@ cron.schedule('* * * * *', () => {
     });
 });
 
-// 
-
 function enviarMensajeWhatsApp(telefono, mensaje, tipo = 'desconocido') {
     if (!telefono) {
         console.error(` -> [Twilio REJECT] Teléfono vacío para ${tipo}. Mensaje: ${mensaje}`);
@@ -447,7 +445,6 @@ function enviarMensajeWhatsApp(telefono, mensaje, tipo = 'desconocido') {
     }
 
     const originalTelefonos = telefono;
-    // 1. Convertir a string y eliminar absolutamente todo lo que no sea un número (quitar espacios, guiones, letras)
     let limpio = telefono.toString().replace(/[^0-9]/g, '');
 
     console.log(` -> [Twilio DEBUG] Preparando envío WhatsApp (${tipo}).`, {
@@ -457,14 +454,12 @@ function enviarMensajeWhatsApp(telefono, mensaje, tipo = 'desconocido') {
         mensaje
     });
 
-    // 2. Si el usuario escribió por ejemplo "5217225184109" o "52722518...", le quitamos el código de país para estandarizarlo a 10 dígitos
     if (limpio.length === 13 && limpio.startsWith('521')) {
-        limpio = limpio.substring(3); // Quita el 521 externo
+        limpio = limpio.substring(3); 
     } else if (limpio.length === 12 && limpio.startsWith('52')) {
-        limpio = limpio.substring(2); // Quita el 52 externo
+        limpio = limpio.substring(2); 
     }
 
-    // 3. Ahora que está perfectamente limpio a 10 dígitos, le pegamos el prefijo oficial
     if (limpio.length === 10) {
         limpio = `+52${limpio}`;
     } else if (limpio.length > 10 && !limpio.startsWith('+')) {

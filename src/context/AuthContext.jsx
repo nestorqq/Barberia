@@ -129,7 +129,16 @@ export const AuthProvider = ({ children }) => {
         10000
       );
 
-      const data = await response.json();
+      const responseClone = response.clone();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        const text = await responseClone.text();
+        console.error('Social login returned non-JSON response:', text);
+        throw new Error(`Respuesta no válida del servidor: ${text}`);
+      }
+
       if (!response.ok) {
         throw new Error(data.message || 'Error al iniciar sesión con Google');
       }
