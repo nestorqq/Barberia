@@ -1,7 +1,6 @@
 const mysql = require('mysql2');
 
 const poolConfig = {
-  // Cambiamos DB_HOST por MYSQLHOST, etc.
   host: process.env.MYSQLHOST || '127.0.0.1',
   port: parseInt(process.env.MYSQLPORT, 10) || 3306,
   user: process.env.MYSQLUSER || 'root',
