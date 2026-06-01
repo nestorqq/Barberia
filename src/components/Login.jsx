@@ -12,6 +12,7 @@ const Login = () => {
   const [userType, setUserType] = useState('cliente');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const loginImageUrl = 'https://images.unsplash.com/photo-1503951914875-3c4e35c0a5b2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,11 +43,7 @@ try {
 
   return (
     <div className="auth-container">
-      <div className="auth-image">
-        <img 
-          src="https://images.unsplash.com/photo-1503951914875-3c4e35c0a5b2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
-          alt="Barbería Editorial"
-        />
+      <div className="auth-image" style={{ backgroundImage: `url(${loginImageUrl})` }}>
         <div className="image-overlay">
           <h2>Redefiniendo el Arte de la Barbería.</h2>
           <p>Experimenta el estándar editorial en cuidado personal masculino. Un espacio diseñado para el hombre moderno.</p>
