@@ -194,13 +194,22 @@ const BarberoDashboard = () => {
 
   const handleCancelarCita = async (id_cita) => {
     if (!id_cita) return;
-    if (!window.confirm('¿Deseas cancelar esta cita? Esta acción actualizará el estado a cancelada.')) return;
+    const cita = appointments.find(a => (a.id_cita || a.id) === id_cita);
+    const tienePago = cita && cita.payment_status === 'completed';
+    const mensaje = tienePago
+      ? 'Al cancelar esta cita, se emitirá un reembolso al cliente. El pago se devolverá en un plazo no mayor a 48 horas. ¿Deseas continuar?'
+      : '¿Deseas cancelar esta cita? Esta acción actualizará el estado a cancelada.';
+    if (!window.confirm(mensaje)) return;
     setError(null);
     setSuccess(null);
     try {
-      await actualizarEstadoCita(id_cita, 'cancelada');
-      setSuccess('Cita cancelada correctamente.');
-      setTimeout(() => setSuccess(null), 4000);
+      const result = await actualizarEstadoCita(id_cita, 'cancelada');
+      if (result.refund) {
+        setSuccess('Cita cancelada y reembolso procesado. El cliente recibirá un correo con los detalles.');
+      } else {
+        setSuccess('Cita cancelada correctamente.');
+      }
+      setTimeout(() => setSuccess(null), 5000);
       await loadData();
     } catch (err) {
       console.error('Error al cancelar cita:', err);

@@ -7,6 +7,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { initTransporter, sendConfirmationToClient, sendConfirmationToBarbero, sendRefundToClient } = require('./emailService');
 
 app.use(cors());
 app.use(express.json());
@@ -24,7 +25,7 @@ app.get('/', (req, res) => {
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, './uploads/');
+        cb(null, path.join(__dirname, 'uploads'));
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + '-' + file.originalname);
@@ -143,15 +144,21 @@ app.post('/social-login', (req, res) => {
 
 app.get('/citas', (req, res) => {
     const { id_barbero } = req.query;
-    let query = 'SELECT * FROM tabla_citas';
+    let query = `
+        SELECT c.*, cli.nombre AS nombre_cliente, bar.nombre AS nombre_barbero, s.nombre_servicio
+        FROM tabla_citas c
+        LEFT JOIN tabla_usuarios cli ON c.id_cliente = cli.id_user
+        LEFT JOIN tabla_usuarios bar ON c.id_barbero = bar.id_user
+        LEFT JOIN tabla_servicios s ON c.id_servicio = s.id_servicio
+    `;
     const params = [];
 
     if (id_barbero) {
-        query += ' WHERE id_barbero = ?';
+        query += ' WHERE c.id_barbero = ?';
         params.push(parseInt(id_barbero, 10));
     }
 
-    query += ' ORDER BY fecha_hora DESC';
+    query += ' ORDER BY c.fecha_hora DESC';
     db.query(query, params, (err, results) => {
         if (err) {
             console.error(err);
@@ -163,7 +170,15 @@ app.get('/citas', (req, res) => {
 
 app.get('/citas/cliente/:id_cliente', (req, res) => {
     const { id_cliente } = req.params;
-    const query = 'SELECT * FROM tabla_citas WHERE id_cliente = ? ORDER BY fecha_hora DESC';
+    const query = `
+        SELECT c.*, cli.nombre AS nombre_cliente, bar.nombre AS nombre_barbero, s.nombre_servicio
+        FROM tabla_citas c
+        LEFT JOIN tabla_usuarios cli ON c.id_cliente = cli.id_user
+        LEFT JOIN tabla_usuarios bar ON c.id_barbero = bar.id_user
+        LEFT JOIN tabla_servicios s ON c.id_servicio = s.id_servicio
+        WHERE c.id_cliente = ?
+        ORDER BY c.fecha_hora DESC
+    `;
     db.query(query, [parseInt(id_cliente, 10)], (err, results) => {
         if (err) {
             console.error("Error en base de datos:", err);
@@ -177,17 +192,14 @@ app.get('/citas/cliente/:id_cliente', (req, res) => {
 // CORRECCIÓN AQUÍ: POST /CITAS CONTROLANDO LA HORA
 // ==========================================
 app.post('/citas', (req, res) => {
-    const { id_user, id_cliente, id_barbero, id_servicio, fecha_hora, estado } = req.body;
+    const { id_user, id_cliente, id_barbero, id_servicio, fecha_hora, estado, nota, monto, payment_intent_id, payment_status } = req.body;
     const customerId = id_user || id_cliente;
 
     if (!customerId || !id_barbero || !id_servicio || !fecha_hora) {
         return res.status(400).json({ message: 'Faltan campos obligatorios para la cita' });
     }
 
-    // Convertimos lo que mande el frontend a un formato limpio de MySQL sin desfases UTC
     const fechaObjeto = new Date(fecha_hora);
-
-    // Si la fecha es válida, la formateamos manualmente a 'YYYY-MM-DD HH:MM:SS'
     let fechaFinalSQL = fecha_hora;
     if (!isNaN(fechaObjeto.getTime())) {
         const pad = (num) => num.toString().padStart(2, '0');
@@ -197,19 +209,55 @@ app.post('/citas', (req, res) => {
         const HH = pad(fechaObjeto.getHours());
         const mm = pad(fechaObjeto.getMinutes());
         const ss = pad(fechaObjeto.getSeconds());
-
         fechaFinalSQL = `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
     }
 
-    console.log(`-> Guardando cita en DB. Original: ${fecha_hora} | Formateada SQL: ${fechaFinalSQL}`);
-
-    const query = `INSERT INTO tabla_citas (id_cliente, id_barbero, id_servicio, fecha_hora, estado) VALUES (?, ?, ?, ?, ?)`;
-    db.query(query, [parseInt(customerId, 10), parseInt(id_barbero, 10), parseInt(id_servicio, 10), fechaFinalSQL, estado || 'pendiente'], (err, result) => {
+    const query = `INSERT INTO tabla_citas (id_cliente, id_barbero, id_servicio, fecha_hora, estado, nota, monto, payment_intent_id, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    db.query(query, [parseInt(customerId, 10), parseInt(id_barbero, 10), parseInt(id_servicio, 10), fechaFinalSQL, estado || 'pendiente', nota || null, monto || null, payment_intent_id || null, payment_status || 'pending'], (err, result) => {
         if (err) {
             console.error('Error al crear cita:', err);
             return res.status(500).json({ message: 'Error al crear la cita', error: err.message });
         }
-        res.json({ success: true, message: 'Cita creada con éxito', id_cita: result.insertId });
+
+        const id_cita = result.insertId;
+
+        if (payment_status === 'completed') {
+            const emailQuery = `
+                SELECT c.*, cli.nombre AS nombre_cliente, cli.correo AS correo_cliente,
+                       bar.nombre AS nombre_barbero, bar.correo AS correo_barbero,
+                       s.nombre_servicio
+                FROM tabla_citas c
+                JOIN tabla_usuarios cli ON c.id_cliente = cli.id_user
+                JOIN tabla_usuarios bar ON c.id_barbero = bar.id_user
+                JOIN tabla_servicios s ON c.id_servicio = s.id_servicio
+                WHERE c.id_cita = ?
+            `;
+            db.query(emailQuery, [id_cita], async (err2, rows) => {
+                if (!err2 && rows.length > 0) {
+                    const r = rows[0];
+                    try {
+                        await sendConfirmationToClient(r.correo_cliente, r.nombre_cliente, {
+                            nombre_servicio: r.nombre_servicio,
+                            nombre_barbero: r.nombre_barbero,
+                            fecha_hora: r.fecha_hora,
+                            monto: r.monto,
+                            payment_intent_id: r.payment_intent_id,
+                        });
+                        await sendConfirmationToBarbero(r.correo_barbero, r.nombre_barbero, {
+                            nombre_cliente: r.nombre_cliente,
+                            nombre_servicio: r.nombre_servicio,
+                            fecha_hora: r.fecha_hora,
+                            monto: r.monto,
+                            nota: r.nota,
+                        });
+                    } catch (emailErr) {
+                        console.error('Error enviando correos:', emailErr);
+                    }
+                }
+            });
+        }
+
+        res.json({ success: true, message: 'Cita creada con éxito', id_cita });
     });
 });
 
@@ -217,22 +265,66 @@ app.put('/citas/:id', (req, res) => {
     const { id } = req.params;
     const { estado } = req.body;
 
-    console.log(`PUT /citas/${id} -> estado=${estado}`);
-
     if (!estado) {
         return res.status(400).json({ message: 'Se requiere el estado de la cita' });
     }
 
-    const query = 'UPDATE tabla_citas SET estado = ? WHERE id_cita = ?';
-    db.query(query, [estado, parseInt(id, 10)], (err, result) => {
-        if (err) {
-            console.error('Error al actualizar el estado de la cita:', err);
-            return res.status(500).json({ message: 'Error al actualizar la cita' });
+    const getQuery = `
+        SELECT c.*, cli.nombre AS nombre_cliente, cli.correo AS correo_cliente,
+               bar.nombre AS nombre_barbero, bar.correo AS correo_barbero,
+               s.nombre_servicio
+        FROM tabla_citas c
+        JOIN tabla_usuarios cli ON c.id_cliente = cli.id_user
+        JOIN tabla_usuarios bar ON c.id_barbero = bar.id_user
+        JOIN tabla_servicios s ON c.id_servicio = s.id_servicio
+        WHERE c.id_cita = ?
+    `;
+
+    db.query(getQuery, [parseInt(id, 10)], (err, rows) => {
+        if (err) return res.status(500).json({ message: 'Error al obtener la cita' });
+        if (rows.length === 0) return res.status(404).json({ message: 'Cita no encontrada' });
+
+        const cita = rows[0];
+        let updateQuery = 'UPDATE tabla_citas SET estado = ?';
+        const params = [estado];
+
+        let refund = false;
+        if (estado === 'cancelada' && cita.payment_status === 'completed') {
+            updateQuery += ', payment_status = ?, refundado_en = NOW()';
+            params.push('refunded');
+            refund = true;
         }
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Cita no encontrada' });
-        }
-        res.json({ success: true, message: 'Estado de la cita actualizado' });
+
+        updateQuery += ' WHERE id_cita = ?';
+        params.push(parseInt(id, 10));
+
+        db.query(updateQuery, params, async (err2, result) => {
+            if (err2) {
+                console.error('Error al actualizar la cita:', err2);
+                return res.status(500).json({ message: 'Error al actualizar la cita' });
+            }
+
+            if (refund) {
+                try {
+                    await sendRefundToClient(cita.correo_cliente, cita.nombre_cliente, {
+                        nombre_servicio: cita.nombre_servicio,
+                        monto: cita.monto,
+                        payment_intent_id: cita.payment_intent_id,
+                    });
+                } catch (emailErr) {
+                    console.error('Error enviando correo de reembolso:', emailErr);
+                }
+
+                return res.json({
+                    success: true,
+                    message: 'Cita cancelada y reembolso procesado',
+                    refund: true,
+                    refund_message: 'La cita ha sido cancelada. El reembolso se procesará automáticamente y se verá reflejado en un plazo no mayor a 48 horas.'
+                });
+            }
+
+            res.json({ success: true, message: 'Estado de la cita actualizado' });
+        });
     });
 });
 
@@ -492,6 +584,8 @@ function enviarMensajeWhatsApp(telefono, mensaje, tipo = 'desconocido') {
             console.error(` -> [Twilio ERROR] No se pudo entregar a ${stringDestino}. Motivo:`, error.message);
         });
 }
+
+initTransporter().catch(console.error);
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`SERVIDOR ESCUCHANDO EN EL PUERTO ${port}`));
