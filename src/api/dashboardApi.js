@@ -1,5 +1,5 @@
 // src/api/dashboardApi.js
-const BASE_URL = 'http://127.0.0.1:5000';
+const BASE_URL = 'https://barberia-production-7969.up.railway.app';
 
 // Auxiliar para peticiones GET estandarizadas
 const fetchJson = async (url) => {

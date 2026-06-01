@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password, selectedRole) => {
     try {
       const response = await fetchWithTimeout(
-        'http://localhost:5000/login',
+        'https://barberia-production-7969.up.railway.app/login',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }) => {
   const signup = async (nombre, correo, telefono, password, rol) => {
     try {
       const response = await fetchWithTimeout(
-        'http://localhost:5000/signup',
+        'https://barberia-production-7969.up.railway.app/signup',
         {
           method: 'POST',
           headers: {
@@ -118,7 +118,7 @@ export const AuthProvider = ({ children }) => {
   const socialLogin = async ({ name, email, photo }) => {
     try {
       const response = await fetchWithTimeout(
-        'http://localhost:5000/social-login',
+        'https://barberia-production-7969.up.railway.app/social-login',
         {
           method: 'POST',
           headers: {

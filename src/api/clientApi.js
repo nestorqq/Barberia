@@ -1,4 +1,4 @@
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const BASE_URL = process.env.REACT_APP_API_URL || 'https://barberia-production-7969.up.railway.app';
 
 const fetchJson = async (url, options = {}) => {
   const response = await fetch(url, {
